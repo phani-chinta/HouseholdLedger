@@ -1,0 +1,43 @@
+{
+  "configuration": {
+    "profiles": 1000,
+    "seed": 20261022,
+    "transactions": 500000
+  },
+  "identical": true,
+  "rows": {
+    "account": 2000,
+    "budget": 96000,
+    "category": 10,
+    "categoryrule": 15,
+    "exceptioncase": 2611,
+    "ground_truth": 500400,
+    "insight": 96000,
+    "ledgerevent": 5820,
+    "merchant": 14,
+    "recurringoccurrence": 35827,
+    "recurringseries": 3009,
+    "transaction": 500000,
+    "userprofile": 1000
+  },
+  "sha256": {
+    "README.md": "6b62ac4e0e020ce8157e52529289fd88196b3b52258552cfc0eecbdc78d9b655",
+    "account.csv": "fe9c2abd76641fb459be7fa63740a03a3a8e89abb294d0d2c02cd0e0acb9da59",
+    "budget.csv": "ed3830264180d567f5edd780eec1ecf3f3fc74af2f96e5928a1754b64dd468d4",
+    "category.csv": "ee37a66a120268289e4e550998651f023d8f801669c78d14a8f6eecd616f2d2c",
+    "categoryrule.csv": "e3662ce731eaffdd956ab9c7f79138eac6f18e089cbee9dfbb1a51f708eceb19",
+    "exceptioncase.csv": "1836570784d90b706672bd7e396dc523b39c6acf25b741c9959a314ebc895c1f",
+    "ground_truth.csv": "0f8244779bd16c8facf21cb7d312cb9b1969e9d86e440a4d89b4731f0323d0a2",
+    "insight.csv": "ab4ba544f28275c1d8f9a09cd5abeeafb916cda423e5f2ce60461c1e907a8cd8",
+    "ledgerevent.csv": "d08b0888355c4b3b72cec1aabb1d476f0ecac625e564e7472a14aa6d88d13866",
+    "merchant.csv": "0f76496b60bbc692d573a3110d75f5b02dd7a2a0221623204e4c3d3028643326",
+    "recurringoccurrence.csv": "a6845a514cbf24fb1e881d4a9b00cad29c73d2b14cebb3440aeef50acc31ce30",
+    "recurringseries.csv": "def20c48342e5133223bfca5c3ffe61cfde60cd9de6d7037a2e8cb42db6772ba",
+    "seed.jsonl": "b9d3d6ec83dd4d53087f8e9faa454b8b9ac94ab5813879ce7bc83084aec75d00",
+    "seed.sql": "198b8f6cf8936db985ada1d2badad48688dd40c159caa17d9d8eb25731c4fbdd",
+    "source_manifest.json": "798c916ad7123ce853e9a500146d7c65ef3dad8d5091ecdc3da4e5973f655e2d",
+    "transaction.csv": "ec5cee4507fc28a10b260f8013579cf8f2d6ab7a10ec62f7a3debfb6ff755b14",
+    "userprofile.csv": "e404aabd4c0adf28624425993d99b3a03e4a7f429a90a06e8f10d8586e178a92",
+    "validation.json": "15d4056592280b9e0122701fd2e0e7404580849cd88e2cba8ce4912c7ac93d72"
+  }
+}

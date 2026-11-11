@@ -1,0 +1,6 @@
+@import "tailwindcss" source(none);
+@source "./index.html";
+@source "./app.js";
+@theme {
+  --color-ledger: #27664f;
+}

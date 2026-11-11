@@ -1,0 +1,38 @@
+{
+  "categorization_accuracy": 0.998,
+  "categorization_coverage": 0.998,
+  "checks": {
+    "active_transfer_delta": 0,
+    "budget_delta": 0,
+    "category_assigned": 499000,
+    "category_correct": 499000,
+    "category_total": 500000,
+    "ledger_delta": 0,
+    "recurring_fn": 0,
+    "recurring_fp": 27,
+    "recurring_tp": 35800,
+    "validated_profiles": 1000
+  },
+  "configuration": {
+    "profiles": 1000,
+    "seed": 20261022,
+    "transactions": 500000
+  },
+  "recurring_precision": 0.999246,
+  "recurring_recall": 1.0,
+  "rows": {
+    "account": 2000,
+    "budget": 96000,
+    "category": 10,
+    "categoryrule": 15,
+    "exceptioncase": 2611,
+    "ground_truth": 500400,
+    "insight": 96000,
+    "ledgerevent": 5820,
+    "merchant": 14,
+    "recurringoccurrence": 35827,
+    "recurringseries": 3009,
+    "transaction": 500000,
+    "userprofile": 1000
+  }
+}

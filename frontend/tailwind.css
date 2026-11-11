@@ -1,0 +1,2 @@
+/* Offline utility stylesheet. npm run build:css regenerates Tailwind from tailwind.input.css. */
+.flex{display:flex}.grid{display:grid}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.text-sm{font-size:.875rem}.w-full{width:100%}.min-w-0{min-width:0}.text-ledger{color:#27664f}
