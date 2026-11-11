@@ -3,8 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#131c19">
+  <meta name="theme-color" content="#f6f8fb">
   <title>Household Ledger</title>
+  <script>
+    (() => {
+      const key = 'household-ledger-theme';
+      function apply(value) {
+        const theme = value === 'dark' ? 'dark' : 'light';
+        document.documentElement.dataset.theme = theme;
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#101723' : '#f6f8fb';
+        document.querySelectorAll('[data-theme-select]').forEach(control => { control.value = theme; });
+      }
+      function restore() {
+        try { apply(localStorage.getItem(key)); }
+        catch { apply('light'); }
+      }
+      restore();
+      window.addEventListener('storage', event => {
+        if (event.key === key || event.key === null) restore();
+      });
+      document.addEventListener('change', event => {
+        if (!event.target.matches('[data-theme-select]')) return;
+        const theme = event.target.value;
+        apply(theme);
+        try { localStorage.setItem(key, theme); } catch { /* Applies for this visit. */ }
+      });
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&amp;display=swap" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="/tailwind.css">
   <link rel="stylesheet" href="/styles.css">
   <script type="module" src="/app.js"></script>
