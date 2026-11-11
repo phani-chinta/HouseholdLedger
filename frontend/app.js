@@ -21,11 +21,23 @@ const periodLabel = value => monthName.format(new Date(value+'-01T00:00:00Z'));
 const button = (label, action, options={}) => '<button type="button" class="'+(options.className || 'button')+'" data-action="'+action+'"'+
   (options.id != null ? ' data-id="'+esc(options.id)+'"' : '')+(options.disabled ? ' disabled' : '')+'>'+ (options.icon ? icon(options.icon) : '')+esc(label)+'</button>';
 const pill = (value, variant='') => '<span class="pill '+variant+'">'+esc(pretty(value))+'</span>';
-const empty = text => '<div class="empty">'+esc(text)+'</div>';
+const empty = text => '<div class="empty"><span class="empty-icon">'+icon('overview')+'</span><p>'+esc(text)+'</p></div>';
 const options = (items, current) => items.map(([value,label]) => '<option value="'+esc(value)+'"'+(String(current)===String(value)?' selected':'')+'>'+esc(label)+'</option>').join('');
 const writable = () => state.session.role !== 'reviewer';
 const staff = () => state.session.role !== 'customer';
 const admin = () => state.session.role === 'administrator';
+
+function themeControl() {
+  const theme = document.documentElement.dataset.theme || 'light';
+  return '<label class="theme-control"><span>Theme</span><select data-theme-select aria-label="Color theme">'+
+    options([['light','Light'],['dark','Dark']],theme)+'</select></label>';
+}
+
+function skeleton(current) {
+  return '<div class="skeleton" role="status" aria-label="Loading '+esc(names[current])+'">'+
+    '<div class="skeleton-title"></div><div class="skeleton-grid">'+
+    '<div></div><div></div><div></div><div></div></div><div class="skeleton-panel"></div></div>';
+}
 
 async function api(path, method='GET', data) {
   const headers = {Accept:'application/json'};
@@ -82,7 +94,7 @@ function loginScreen(mode='login', focus=false) {
     '<p class="form-error" role="alert"></p><button class="button primary" type="submit">'+title+' '+icon('arrow')+'</button></form>';
   root.innerHTML = '<main class="login"><section class="login-art"><div class="brand"><span class="brand-mark">H</span> Household Ledger</div>'+
     '<h1>Know where your money goes.</h1><p>Track household transactions, recurring payments, and monthly budgets in one place.</p></section>'+
-    '<section class="login-side" aria-labelledby="auth-title"><div class="login-box"><h2 id="auth-title" tabindex="-1">'+title+'</h2>'+
+    '<section class="login-side" aria-labelledby="auth-title"><div class="login-box"><div class="login-heading"><h2 id="auth-title" tabindex="-1">'+title+'</h2>'+themeControl()+'</div>'+
     '<p class="muted">'+(register?'Set up your household and start tracking your spending.':'Open your household workspace.')+'</p>'+form+
     '<p class="auth-switch">'+(register?'Already have an account? ':'New to Household Ledger? ')+
     button(register?'Sign in':'Create an account','auth-mode',{id:register?'login':'register',className:'link-button'})+'</p>'+
@@ -150,10 +162,11 @@ function shell(current) {
     '<div class="sidebar-footer"><span class="avatar">'+esc(who.slice(0,1).toUpperCase())+'</span><div><strong>'+esc(who)+'</strong><div class="muted text-sm">'+esc(pretty(state.session.role))+'</div></div>'+
     (state.session.demo?'':'<button type="button" class="icon-button account-settings" data-action="account-settings" aria-label="Account settings" title="Account settings">'+icon('rules')+'</button>')+
     '<button type="button" class="icon-button" data-action="logout" aria-label="Sign out" title="Sign out">'+icon('signout')+'</button></div></aside>'+
-    '<div class="min-w-0"><header class="topbar"><div class="crumb"><button type="button" class="icon-button mobile-menu" data-action="menu" aria-label="Toggle menu">'+icon('menu')+'</button><span>Workspace</span><span>/</span><strong>'+esc(names[current])+'</strong></div>'+
-    '<div class="top-controls">'+(staff() && reference ? '<select id="profile" aria-label="Household">'+options(reference.profiles.map(p=>[p.id,p.name]),reference.profile.id)+'</select>':'')+
+    '<button type="button" class="sidebar-scrim" data-action="menu" aria-label="Close navigation" tabindex="-1"></button>'+
+    '<div class="min-w-0"><header class="topbar"><div class="crumb"><button type="button" class="icon-button mobile-menu" data-action="menu" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">'+icon('menu')+'</button><span>Workspace</span><span>/</span><strong>'+esc(names[current])+'</strong></div>'+
+    '<div class="top-controls">'+themeControl()+(staff() && reference ? '<select id="profile" aria-label="Household">'+options(reference.profiles.map(p=>[p.id,p.name]),reference.profile.id)+'</select>':'')+
     '<input type="month" class="period" id="period" aria-label="Reporting month" min="2000-01" max="2099-12" value="'+esc(state.month)+'"></div></header>'+
-    '<main class="content" id="content"><div class="loading">Loading '+esc(names[current].toLowerCase())+'…</div></main></div></div>';
+    '<main class="content" id="content">'+skeleton(current)+'</main></div></div>';
 }
 
 function intro(key, description, actions='') {
@@ -185,23 +198,48 @@ function category(row) {
   return row.category ? pill(row.category, row.kind==='transfer'?'neutral':'') : pill('Needs review','warn');
 }
 
-function budgetItem(row) {
-  const percent = Math.max(0,Math.min(100,row.spent_cents*100/row.limit_cents));
-  return '<div class="budget-item"><div class="budget-meta"><strong>'+esc(row.category)+'</strong><span class="muted">'+money(row.spent_cents)+' / '+money(row.limit_cents)+'</span></div>'+
-    '<div class="track" role="progressbar" aria-label="'+esc(row.category)+' budget used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(percent)+'"><div class="fill '+esc(row.status)+'" style="width:'+percent+'%"></div></div></div>';
+function budgetItem(row, showCategory=true) {
+  const usage = row.limit_cents > 0 ? row.spent_cents*100/row.limit_cents : 0;
+  const progress = Math.max(0,Math.min(100,usage));
+  return '<div class="budget-item"><div class="budget-meta">'+(showCategory?'<strong>'+esc(row.category)+'</strong>':'<strong>Monthly limit</strong>')+
+    '<span class="muted">'+(showCategory?money(row.spent_cents)+' / ':'')+money(row.limit_cents)+'</span></div>'+
+    '<div class="track" role="progressbar" aria-label="'+esc(row.category)+' budget used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(progress)+
+    '" aria-valuetext="'+Math.round(usage)+'% of limit"><div class="fill '+esc(row.status)+'" style="width:'+progress+'%"></div></div>'+
+    '<span class="budget-usage">'+Math.round(usage)+'% used</span></div>';
 }
 
 function chart(trend) {
-  const maximum = Math.max(10000,...trend.flatMap(point=>[point.income_cents,point.spending_cents]));
-  const unit = maximum > 4000000 ? 2000000 : maximum > 500000 ? 500000 : 10000;
-  const top = Math.ceil(maximum/unit)*unit;
-  const axis = [1,.75,.5,.25,0].map(part=>'<span>'+(part ? '₹'+(top*part/100000).toLocaleString('en-IN',{maximumFractionDigits:1})+'k':'₹0')+'</span>').join('');
-  const groups = trend.map(point=>{
+  if (!trend.length) return empty('No cash-flow history for this period.');
+  const values = trend.flatMap(point=>[point.income_cents,point.spending_cents]);
+  const minimum = Math.min(0,...values);
+  const maximum = Math.max(0,...values);
+  const rough = Math.max(10000,(maximum-minimum)/4);
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const step = [1,2,2.5,5,10].find(size=>size*magnitude >= rough)*magnitude;
+  const top = Math.max(0,Math.ceil(maximum/step)*step);
+  const bottom = Math.floor(minimum/step)*step;
+  const range = top-bottom || step;
+  const baseline = 100*(0-bottom)/range;
+  const compact = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',notation:'compact',maximumFractionDigits:1});
+  const axis = [1,.75,.5,.25,0].map(part=>'<span>'+esc(compact.format((bottom+range*part)/100))+'</span>').join('');
+  const groups = trend.map((point,index)=>{
     const label = monthShort.format(new Date(point.month+'-01T00:00:00Z'));
-    const bar = (value,kind,light) => '<div class="chart-bar '+(light?'light':'')+'" tabindex="0" role="img" aria-label="'+label+' '+kind+' '+money(value)+'" title="'+label+' '+kind+' '+money(value)+'" style="height:'+Math.max(0,100*value/top)+'%"></div>';
-    return '<div class="bar-group">'+bar(point.income_cents,'income',false)+bar(point.spending_cents,'spending',true)+'<span class="bar-label">'+label+'</span></div>';
+    const fullLabel = periodLabel(point.month);
+    const bar = (value,kind) => {
+      const position = 100*(Math.min(0,value)-bottom)/range;
+      const height = 100*Math.abs(value)/range;
+      return '<span class="chart-bar '+kind+'" style="bottom:'+position+'%;height:'+height+'%"></span>';
+    };
+    const description = fullLabel+', income '+money(point.income_cents)+', spending '+money(point.spending_cents);
+    return '<button type="button" class="bar-group" data-action="chart-month" aria-pressed="false" aria-label="'+esc(description)+'"'+
+      ' style="--bar-delay:'+index*35+'ms"><span class="chart-tooltip" aria-hidden="true"><strong>'+esc(fullLabel)+'</strong>'+
+      '<span><i class="dot"></i> Income <b>'+money(point.income_cents)+'</b></span>'+
+      '<span><i class="dot light"></i> Spending <b>'+money(point.spending_cents)+'</b></span></span>'+
+      bar(point.income_cents,'income')+bar(point.spending_cents,'spending')+
+      '<span class="bar-label" aria-hidden="true">'+esc(label)+'</span></button>';
   }).join('');
-  return '<div class="chart" aria-label="Monthly income and spending chart"><div class="axis" aria-hidden="true">'+axis+'</div><div class="plot">'+groups+'</div></div>';
+  return '<div class="chart" role="group" aria-label="Monthly income and spending"><div class="axis" aria-hidden="true">'+axis+
+    '</div><div class="plot" style="--months:'+trend.length+';--baseline:'+baseline+'%">'+groups+'</div></div>';
 }
 
 function panelHead(title, subtitle='', action='') {
@@ -228,8 +266,8 @@ function overview(data) {
     writable()?button('Add transaction','create-transaction',{className:'button primary',icon:'add'}):'')+
     setup+'<div class="kpis">'+cards+'</div><div class="dash-grid"><section class="panel">'+panelHead('Cash flow','Last 6 months','<div class="legend"><span><i class="dot"></i>Income</span><span><i class="dot light"></i>Spending</span></div>')+chart(data.trend)+'</section>'+
     '<section class="panel">'+panelHead('Budget watch','Categories closest to their limits',go('All budgets →','budgets'))+
-    (focus.length?'<div class="budget-list">'+focus.map(budgetItem).join('')+'</div>':empty('No budget limits set this month.'))+'</section></div>'+
-    '<div class="dash-grid"><section class="panel">'+panelHead('Recent transactions',data.transaction_count+' ledger entries this month',go('View ledger →','transactions'))+
+    (focus.length?'<div class="budget-list">'+focus.map(row=>budgetItem(row)).join('')+'</div>':empty('No budget limits set this month.'))+'</section></div>'+
+    '<div class="dash-grid"><section class="panel">'+panelHead('Recent transactions',data.transaction_count+' '+(data.transaction_count===1?'ledger entry':'ledger entries')+' this month',go('View ledger →','transactions'))+
     table(['Merchant / Account','Posted','Category','~Amount'],rows)+'</section><section class="panel">'+panelHead('Household activity','',writable()?button('Add account','add-ledger-account',{className:'link-button'}):'')+
     '<div class="snapshot"><div class="snapshot-row"><span>'+icon('recurring')+' Recurring payments</span>'+go(String(data.recurring_count)+' →','recurring')+'</div>'+
     '<div class="snapshot-row"><span>'+icon('exceptions')+' Open exceptions</span>'+go(String(data.open_exceptions)+' →','exceptions')+'</div>'+
@@ -240,7 +278,7 @@ function overview(data) {
 }
 
 function transactions(data) {
-  const rows = data.items.map(row=>[merchantCell(row),esc(dateLabel(row.local_date)),category(row),esc(pretty(row.decision)),
+  const rows = data.items.map(row=>[merchantCell(row),esc(dateLabel(row.local_date)),category(row),pill(row.decision,row.category?'neutral':'warn'),
     amount(row.cents),button('Details','transaction-detail',{id:row.id})]);
   return intro('transactions','Search and review ledger entries for '+periodLabel(state.month)+'.',
     writable()?button('Add transaction','create-transaction',{className:'button primary',icon:'add'}):'')+
@@ -253,16 +291,17 @@ function transactions(data) {
 function budgets(data) {
   const cards = data.items.map(row=>'<article class="panel detail-card"><div class="flex items-center justify-between gap-2"><h2>'+esc(row.category)+'</h2>'+
     pill(row.status,row.status==='over'?'bad':row.status==='near'?'warn':'')+'</div><div class="kpi-value">'+money(row.spent_cents)+'</div>'+
-    budgetItem(row)+(writable()?'<div class="actions">'+button('Edit limit','edit-budget',{id:row.id})+button('Archive','archive-budget',{id:row.id,className:'button danger'})+'</div>':'')+'</article>');
+    budgetItem(row,false)+(writable()?'<div class="actions">'+button('Edit limit','edit-budget',{id:row.id})+button('Archive','archive-budget',{id:row.id,className:'button danger'})+'</div>':'')+'</article>');
   return intro('budgets','Compare category spending against monthly limits for '+periodLabel(state.month)+'.',
     writable()?button('Add budget','add-budget',{className:'button primary',icon:'add'}):'')+
     (cards.length?'<div class="list-grid">'+cards.join('')+'</div>':'<div class="panel">'+empty('No budgets for this month.')+'</div>');
 }
 
 function recurring(data) {
-  const cards = data.items.map(row=>'<article class="panel detail-card"><div class="flex items-center justify-between gap-2"><h2>'+esc(row.name)+'</h2>'+pill(row.typical_cents>0?'Income':'Payment')+'</div>'+
-    '<div class="kpi-value">'+money(Math.abs(row.typical_cents))+'</div><dl><dt>Occurrences</dt><dd>'+row.count+'</dd><dt>First seen</dt><dd>'+esc(dateLabel(row.first_date))+'</dd>'+
-    '<dt>Last seen</dt><dd>'+esc(dateLabel(row.last_date))+'</dd><dt>Next expected</dt><dd>'+esc(dateLabel(row.next_date))+'</dd></dl>'+
+  const cards = data.items.map(row=>'<article class="panel detail-card recurring-card"><div class="flex items-center justify-between gap-2"><h2>'+esc(row.name)+'</h2>'+pill(row.typical_cents>0?'Income':'Payment')+'</div>'+
+    '<div class="recurring-amount"><span class="kpi-value">'+money(Math.abs(row.typical_cents))+'</span><span class="muted">'+row.count+' occurrences</span></div>'+
+    '<ol class="recurring-timeline">'+[['First seen',row.first_date],['Last seen',row.last_date],['Next expected',row.next_date]].map(([label,date])=>
+      '<li><span>'+label+'</span><strong>'+esc(dateLabel(date))+'</strong></li>').join('')+'</ol>'+
     (row.missing_months.length?'<p class="warning">Missing '+esc(row.missing_months.map(periodLabel).join(', '))+'</p>':'')+button('View occurrences','occurrences',{id:row.id})+'</article>');
   return intro('recurring','Detected monthly income and payments across the household ledger.',
     writable()?button('Run detection','detect',{className:'button primary',icon:'recurring'}):'')+
@@ -280,15 +319,15 @@ function exceptions(data) {
 function insights(data) {
   return intro('insights','Review the recorded budget comparisons for '+periodLabel(state.month)+'.')+
     '<section class="panel">'+table(['Category','Revision','~Net spending','~Limit','Status','Recorded'],data.items.map(row=>[
-      esc(row.category),esc(row.revision),money(row.spent_cents),money(row.limit_cents),pill(row.status,row.status==='over'?'bad':''),
+      esc(row.category),esc(row.revision),money(row.spent_cents),money(row.limit_cents),pill(row.status,row.status==='over'?'bad':row.status==='near'?'warn':''),
       esc(dateLabel(row.created_at))]))+pager(data)+'</section>';
 }
 
 function audit(data) {
-  const values = row => '<details><summary>View changes</summary><pre class="audit-values">'+esc(JSON.stringify({before:row.before,after:row.after},null,2))+'</pre></details>';
+  const values = row => '<details class="audit-disclosure"><summary>View changes</summary><pre class="audit-values">'+esc(JSON.stringify({before:row.before,after:row.after},null,2))+'</pre></details>';
   return intro('audit','Trace actions, actors, and previous values in the household ledger.')+
     '<section class="panel">'+table(['Action','Record','Actor','Recorded','Changes'],data.items.map(row=>[
-      esc(pretty(row.action)),esc(row.entity)+'<div class="muted">'+esc(row.entity_id)+'</div>',esc(row.actor),esc(dateLabel(row.created_at)),values(row)]))+pager(data)+'</section>';
+      pill(row.action,'neutral'),esc(row.entity)+'<div class="muted">'+esc(row.entity_id)+'</div>',esc(row.actor),esc(dateLabel(row.created_at)),values(row)]))+pager(data)+'</section>';
 }
 function rules(data) {
   const rows = data.items.map(row=>[esc(row.pattern),esc(row.category_id),esc(row.priority),esc(dateLabel(row.starts)),
@@ -493,6 +532,18 @@ function archive(endpoint,id) {
   });
 }
 
+function toggleMenu(close=false) {
+  const sidebar = document.querySelector('#sidebar');
+  const toggle = document.querySelector('.mobile-menu');
+  if (!sidebar || !toggle) return;
+  const wasOpen = sidebar.classList.contains('open');
+  const open = !close && !wasOpen;
+  sidebar.classList.toggle('open',open);
+  toggle.setAttribute('aria-expanded',String(open));
+  if (open) sidebar.querySelector('.brand').focus();
+  else if (wasOpen) toggle.focus();
+}
+
 const actions = {
   nav: navigate,
   demo: username=>submitAuth('login',{username,password:'LedgerDemo2026!'}),
@@ -516,7 +567,12 @@ const actions = {
       announce('Password changed.');
     }),
 
-  menu: ()=>document.querySelector('#sidebar').classList.toggle('open'),
+  menu: ()=>toggleMenu(),
+  'chart-month':(_,trigger)=>{
+    const selected = trigger.getAttribute('aria-pressed') === 'true';
+    trigger.parentElement.querySelectorAll('[aria-pressed]').forEach(month=>month.setAttribute('aria-pressed','false'));
+    trigger.setAttribute('aria-pressed',String(!selected));
+  },
   close: ()=>dialog.close(),
   retry: render,
   page: id=>{state.page=Number(id);return render();},
@@ -592,7 +648,7 @@ document.addEventListener('submit',event=>{
 
 window.addEventListener('hashchange',()=>{state.page=1;state.q='';state.kind='';render();});
 window.addEventListener('keydown',event=>{
-  if (event.key==='Escape') document.querySelector('#sidebar')?.classList.remove('open');
+  if (event.key==='Escape' && !dialog.open) toggleMenu(true);
 });
 
 try {
